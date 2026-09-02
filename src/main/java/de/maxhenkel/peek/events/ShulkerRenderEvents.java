@@ -48,7 +48,7 @@ public class ShulkerRenderEvents {
 
         poseStack.pushPose();
         poseStack.translate(0.5F, 0.5F, 0.5F);
-        poseStack.mulPose(direction.getRotation());
+        poseStack.rotate(direction.getRotation());
         poseStack.translate(0F, 0.5F, 0F);
         poseStack.translate(0F, progress * 0.5F, 0F);
         poseStack.rotateAround(Axis.YP.rotationDegrees(-270F * progress), 0F, 1F, 0F);
