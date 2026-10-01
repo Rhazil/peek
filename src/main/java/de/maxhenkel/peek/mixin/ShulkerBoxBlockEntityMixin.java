@@ -34,6 +34,9 @@ public abstract class ShulkerBoxBlockEntityMixin extends RandomizableContainerBl
     @Shadow
     private NonNullList<ItemStack> itemStacks;
 
+    @Shadow
+    private int openCount;
+
     protected ShulkerBoxBlockEntityMixin(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
     }
@@ -65,30 +68,42 @@ public abstract class ShulkerBoxBlockEntityMixin extends RandomizableContainerBl
         }
     }
 
-    @Override
-    public void setChanged() {
-        super.setChanged();
-        if (!Peek.CONFIG.sendShulkerBoxDataToClient.get()) {
-            return;
-        }
-        if (level == null || level.isClientSide()) {
-            return;
-        }
-        Packet<ClientGamePacketListener> packet = getUpdatePacket();
-        if (!(packet instanceof ClientboundBlockEntityDataPacket dataPacket)) {
-            return;
-        }
-        CompoundTag tag = dataPacket.getTag();
-        if (tag == null) {
-            tag = new CompoundTag();
-        }
-        if (lastData != null && lastData.equals(tag)) {
-            return;
-        }
+@Override
+public void setChanged() {
+    super.setChanged();
 
-        PlayerLookup.tracking(this).forEach(p -> p.connection.send(packet));
-        lastData = tag;
+    if (!Peek.CONFIG.sendShulkerBoxDataToClient.get()) {
+        return;
     }
+
+    if (level == null || level.isClientSide()) {
+        return;
+    }
+
+    // Don't send Peek's extra block-entity packet while the
+    // shulker box is being used as an open container.
+    // The normal container synchronization handles this state.
+    if (openCount > 0) {
+        return;
+    }
+
+    Packet<ClientGamePacketListener> packet = getUpdatePacket();
+    if (!(packet instanceof ClientboundBlockEntityDataPacket dataPacket)) {
+        return;
+    }
+
+    CompoundTag tag = dataPacket.getTag();
+    if (tag == null) {
+        tag = new CompoundTag();
+    }
+
+    if (lastData != null && lastData.equals(tag)) {
+        return;
+    }
+
+    PlayerLookup.tracking(this).forEach(p -> p.connection.send(packet));
+    lastData = tag;
+}
 
     @Shadow
     protected abstract void saveAdditional(ValueOutput valueOutput);
